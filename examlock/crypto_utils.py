@@ -7,11 +7,27 @@ from cryptography.hazmat.primitives import hashes, serialization
 
 class CryptoEngine:
     def __init__(self):
-        # Generate Authority RSA Key Pair for Digital Signatures
-        self.private_key = rsa.generate_private_key(
-            public_exponent=65537,
-            key_size=2048
-        )
+        # SIH Fix: Key ko file mein save karenge taaki server restart par key badle nahi
+        key_path = "private_key.pem"
+        if os.path.exists(key_path):
+            with open(key_path, "rb") as key_file:
+                self.private_key = serialization.load_pem_private_key(
+                    key_file.read(),
+                    password=None
+                )
+        else:
+            self.private_key = rsa.generate_private_key(
+                public_exponent=65537,
+                key_size=2048
+            )
+            with open(key_path, "wb") as key_file:
+                key_file.write(
+                    self.private_key.private_bytes(
+                        encoding=serialization.Encoding.PEM,
+                        format=serialization.PrivateFormat.TraditionalOpenSSL,
+                        encryption_algorithm=serialization.NoEncryption()
+                    )
+                )
         self.public_key = self.private_key.public_key()
 
     def generate_aes_key(self) -> bytes:
